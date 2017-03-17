@@ -97,6 +97,18 @@ func watch_for_events(device string) {
     }
 }
 
+func remove_from_slice(things []string, item string) []string {
+    var to_remove int
+    for index, thing := range things {
+        if item == thing {
+            to_remove = int(index)
+        }
+    }
+
+    things = append(things[:int(to_remove)], things[int(to_remove)+1:]...)
+    return things
+}
+
 func main() {
     slog, err := syslog.New(syslog.LOG_ERR, "snoopwatchd")
     if err != nil {
@@ -121,13 +133,13 @@ func main() {
                 slog.Info(msg)
                 log.Println(msg)
 
-                time.Sleep(10 * time.Millisecond)
                 go watch_for_events(device)
                 monitored = append(monitored, device)
             }
         }
 
-        for index, monitor := range monitored {
+        new_monitored := monitored
+        for _, monitor := range monitored {
             var found bool = false
             for _, device := range devices {
                 if monitor == device {
@@ -141,9 +153,10 @@ func main() {
                 slog.Alert(msg)
                 log.Println(msg)
 
-                monitored = append(monitored[:int(index)], monitored[int(index)+1:]...)
+                new_monitored = remove_from_slice(new_monitored, monitor)
             }
         }
+        monitored = new_monitored
 
         time.Sleep(100 * time.Millisecond)
     }
